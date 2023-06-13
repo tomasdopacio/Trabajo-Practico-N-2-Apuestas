@@ -1,4 +1,4 @@
-import csv
+import csv , requests
 
 #validaciones 
 def validation_yes_no(respuesta)->bool:
@@ -9,6 +9,9 @@ def validation_1_2(respuesta)->bool:
 
 def validation_mail(mail, lista_de_mails)->bool:
      return "@" not in mail or mail in lista_de_mails or ".com" not in mail 
+
+def validation_equipos(equipo_elegido, equipos_existentes)->bool:
+    return equipo_elegido not in equipos_existentes
 
 
 #lee el archivo csv y lo convierte en una lista                
@@ -23,7 +26,9 @@ def lista_informacion_de_usuarios()->list:
 
     return lista_info
 
+#1------------------------------------------------------------------------------------------------------------------------------
 #lee archivos csv y lo convierte en un diccionario 
+
 def diccionario_infromacion_usuarios()->dict:
     diccionario_info = {}
     with open("usuarios.csv") as archivo_csv:
@@ -35,14 +40,10 @@ def diccionario_infromacion_usuarios()->dict:
 
     return diccionario_info
 
-
-
 #Aca va el programa y todas sus funciones
+
 def menu()->None:
     print("usted a ingresado al menu o sea ingreso sesion exitosamente")
-
-
-
 
 def iniciar_sesion()-> None:
 
@@ -72,15 +73,10 @@ def iniciar_sesion()-> None:
             print("contraseña incorrecta")
             password = input("Ingrese de nuevo la contraseña, si quiere salir ingrese (SALIR) en mayusculas ")
             if password == "SALIR":
-                break 
+                break #SACAR
 
     if password == dic_ingresado[mail]["password"]:
         menu()        
-
-         
-    
-
-
 
 
 def creacion_usuario()-> None:   
@@ -114,7 +110,6 @@ def creacion_usuario()-> None:
 
 
 
-
 def inicio()->None:
     qst = input("¿Es un usuario nuevo? s/n: ")
     while(validation_yes_no(qst)):
@@ -124,10 +119,70 @@ def inicio()->None:
         creacion_usuario()
             
     iniciar_sesion()  
-         
 
+#1-----------------------------------------------------------------------------------------------
+
+#2-----------------------------------------------------------------------------------------------
+def buscar_jugadores_por_equipo()->None:
+    print("EQUIPOS EXISTENTES")
+    ids_de_equipos = impresion_equipos_liga_profesional()
+    print()
+    equipo = input("ingrese un equipo ")
+    print()
+    while validation_equipos(equipo, ids_de_equipos.keys()):
+        print("")
+        impresion_equipos_liga_profesional()
+        print()
+        equipo = input("su equipo no fue encontrado, ingrese un equipo de la lista ")
+        print()
+
+    id_de_equipo = ids_de_equipos[equipo] 
+
+    url = "https://v3.football.api-sports.io/players"
+
+    params={
+        "league":"128",
+        "season":"2023",
+        "team" : id_de_equipo
+    }
+    headers = {
+    'x-rapidapi-key': '0a46210016de4ff4781c6efe3d7e8711',
+    'x-rapidapi-host': 'v3.football.api-sports.io'
+    }
+
+    response = requests.request("GET", url, headers=headers, params=params)
+    reponse_json = response.json()
+
+    print(f"LISTA DE JUGADORES DE {equipo.upper()}")
+    for i in range(len(reponse_json["response"])):     
+       print("-", reponse_json["response"][i]["player"]["name"])
+    
+
+def impresion_equipos_liga_profesional()->dict:
+    
+    url = "https://v3.football.api-sports.io/teams?country=Argentina&league=128&season=2023"
+
+    payload={}
+    headers = {
+    'x-rapidapi-key': '0a46210016de4ff4781c6efe3d7e8711',
+    'x-rapidapi-host': 'v3.football.api-sports.io'
+    }
+
+    response = requests.request("GET", url, headers=headers, data=payload)
+    reponse_json = response.json()
+
+    diccionario_equipos_ids = {}
+
+    for i in range(len(reponse_json["response"])):
+        diccionario_equipos_ids[reponse_json["response"][i]["team"]["name"]] = reponse_json["response"][i]["team"]["id"]
+        print("-",reponse_json["response"][i]["team"]["name"])
+    
+
+    return diccionario_equipos_ids
+#2-------------------------------------------------------------------------------------------------------------------------
 def main() -> None:
     inicio()
+    buscar_jugadores_por_equipo()
 
       
 main()
